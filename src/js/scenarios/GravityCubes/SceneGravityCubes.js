@@ -25,40 +25,52 @@ export default class SceneGravityCubes extends Scene3D {
         /** orthographic camera */
         this.camera = new THREE.OrthographicCamera(
             -this.width / 2, this.width / 2, this.height / 2, -this.height / 2,
-            0.1, 2000 //-> near / far default (optional)
+            0.1, 2000
         )
         this.camera.position.z = 1000
 
+        /** matter js - initialiser le moteur en premier */
+        this.engine = Engine.create({ render: { visible: false } })
+        this.engine.gravity.scale *= this.params.gScale
+        this.runner = Runner.create()
+        Runner.run(this.runner, this.engine)
+
         /** walls */
         this.wallRight = new Wall('blue')
-        this.wallBottom = new Wall('red')
+        this.wallLeft = new Wall('green')
+        this.wallRight.visible = false
+        this.wallLeft.visible = false
+
+        this.wallMiddle1 = new Wall('white')
+        this.wallMiddle2 = new Wall('white')
+
         this.add(this.wallRight)
-        // this.add(this.wallBottom)
+        this.add(this.wallLeft)
+        this.add(this.wallMiddle1)
+        this.add(this.wallMiddle2)
+
+        /** ajouter les murs au monde physics */
+        this.bodies = [
+            this.wallRight.body,
+            this.wallLeft.body,
+            this.wallMiddle1.body,
+            this.wallMiddle2.body,
+        ]
+        Composite.add(this.engine.world, this.bodies)
 
         /** cube */
         this.cubes = []
         const colors = ['red', 'yellow', 'blue']
         for(let i=0; i < 10; i++) {
             const cube_ = new GravityCube(50, colors[i % colors.length])
-            const x_ = randomRange( -this.width / 2, this.width / 2 )
-            const y_ = randomRange( -this.height / 2, this.height / 2 )
+            const x_ = randomRange(-this.width / 2 + THICKNESS, this.width / 2 - THICKNESS)
+            const y_ = randomRange(0, this.height / 2)
             cube_.setPosition(x_, y_)
 
             this.add(cube_)
             this.cubes.push(cube_)
+            Composite.add(this.engine.world, cube_.body)
         }
-
-        /** matter js */
-        this.engine = Engine.create({ render: { visible: false } })
-        this.engine.gravity.scale *= this.params.gScale
-        this.bodies = [
-            this.wallRight.body,
-            // this.wallBottom.body,
-            ...this.cubes.map(c => c.body)
-        ]
-        Composite.add(this.engine.world, this.bodies)
-        this.runner = Runner.create()
-        Runner.run(this.runner, this.engine)
 
         /** device orientation */
         this.globalContext.useDeviceOrientation = true
@@ -103,8 +115,19 @@ export default class SceneGravityCubes extends Scene3D {
             this.wallRight.setPosition(this.width / 2, 0)
             this.wallRight.setSize(THICKNESS, this.height)
 
-            this.wallBottom.setPosition(0, -this.height / 2)
-            this.wallBottom.setSize(this.width - THICKNESS, THICKNESS)
+            this.wallLeft.setPosition(-this.width / 2, 0)
+            this.wallLeft.setSize(THICKNESS, this.height)
+
+            const wallHeight = THICKNESS
+            const wallWidth = this.width * 0.7
+
+            this.wallMiddle1.setPosition(-this.width * 0.2, this.height * 0.2)
+            this.wallMiddle1.setSize(wallWidth, wallHeight)
+            this.wallMiddle1.rotation.z = 0
+
+            this.wallMiddle2.setPosition(this.width * 0.2, -this.height * 0.2)
+            this.wallMiddle2.setSize(wallWidth, wallHeight)
+            this.wallMiddle2.rotation.z = 0
         }
     }
 
@@ -125,5 +148,13 @@ export default class SceneGravityCubes extends Scene3D {
         /** update engine gravity */
         this.engine.gravity.x = gx_
         this.engine.gravity.y = gy_
+    }
+
+    addCube(size, color) {
+        const cube_ = new GravityCube(size, color);
+        this.add(cube_);
+        this.cubes.push(cube_);
+        Composite.add(this.engine.world, cube_.body);
+        return cube_;
     }
 }

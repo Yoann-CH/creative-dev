@@ -73,6 +73,25 @@ export default class SceneBouncingBubbles extends Scene2D {
                 this.generateBubbles()
             })
             this.debugFolder.add(this.params, "gStrength", 0, 400)
+            this.debugFolder.add(this.params, "speed", -1, 1, 0.1).name("Vitesse").onChange(() => {
+                if (!!this.bubbles) {
+                    this.bubbles.forEach(b => {
+                        const currentSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                        if (currentSpeed > 0) {
+                            const direction = {
+                                x: b.vx / currentSpeed,
+                                y: b.vy / currentSpeed
+                            };
+                            const baseSpeed = 200;
+                            b.vx = direction.x * baseSpeed * this.params.speed;
+                            b.vy = direction.y * baseSpeed * this.params.speed;
+                        } else {
+                            b.vx = randomRange(-200, 200) * this.params.speed
+                            b.vy = randomRange(-200, 200) * this.params.speed
+                        }
+                    });
+                }
+            });
         }
 
         /** device orientation */
@@ -168,5 +187,9 @@ export default class SceneBouncingBubbles extends Scene2D {
                 b.gy = gy_ * this.params.gStrength
             })
         }
+    }
+
+    removeBubble(bubble) {
+        this.bubbles = this.bubbles.filter(b => b !== bubble);
     }
 }
